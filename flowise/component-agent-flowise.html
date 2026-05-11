@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Component Intel — Datasheet Agent</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0c0f;
+    --bg2: #0f1217;
+    --bg3: #151b22;
+    --border: #1e2730;
+    --border2: #263040;
+    --accent: #00d4ff;
+    --accent2: #00ff9d;
+    --warn: #ffb347;
+    --danger: #ff5555;
+    --text: #e2e8f0;
+    --text2: #7a8fa6;
+    --text3: #4a5a6a;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+  }
+
+  /* Header */
+  .header { margin-bottom: 48px; }
+  .header-tag {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .header-tag::before {
+    content: '';
+    display: inline-block;
+    width: 20px;
+    height: 1px;
+    background: var(--accent);
+  }
+  h1 {
+    font-family: var(--mono);
+    font-size: 32px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+  }
+  h1 span { color: var(--accent); }
+  .header-sub {
+    margin-top: 10px;
+    font-size: 14px;
+    color: var(--text2);
+    font-weight: 300;
+  }
+
+  /* Powered by badge */
+  .powered-by {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 10px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text3);
+    border: 1px solid var(--border);
+    padding: 4px 10px;
+    border-radius: 2px;
+  }
+  .powered-by span { color: var(--accent2); }
+
+  /* Search bar */
+  .search-wrap {
+    display: flex;
+    gap: 0;
+    margin-bottom: 48px;
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .search-wrap:focus-within { border-color: var(--accent); }
+
+  #partInput {
+    flex: 1;
+    background: var(--bg3);
+    border: none;
+    outline: none;
+    padding: 14px 18px;
+    font-family: var(--mono);
+    font-size: 15px;
+    color: var(--text);
+    letter-spacing: 0.05em;
+  }
+  #partInput::placeholder { color: var(--text3); }
+
+  #searchBtn {
+    background: var(--accent);
+    border: none;
+    padding: 14px 24px;
+    cursor: pointer;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    color: #000;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    transition: background 0.15s, transform 0.1s;
+    white-space: nowrap;
+  }
+  #searchBtn:hover { background: #33ddff; }
+  #searchBtn:active { transform: scale(0.97); }
+  #searchBtn:disabled { background: var(--border2); color: var(--text3); cursor: not-allowed; transform: none; }
+
+  /* Examples */
+  .examples {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: -36px;
+    margin-bottom: 40px;
+  }
+  .examples-label { font-family: var(--mono); font-size: 11px; color: var(--text3); }
+  .ex-btn {
+    font-family: var(--mono);
+    font-size: 11px;
+    background: transparent;
+    border: 1px solid var(--border2);
+    color: var(--text2);
+    padding: 4px 10px;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .ex-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* Status */
+  #statusBar {
+    display: none;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--accent);
+    margin-bottom: 24px;
+    padding: 12px 16px;
+    background: rgba(0,212,255,0.05);
+    border: 1px solid rgba(0,212,255,0.15);
+    border-radius: 4px;
+  }
+  #statusBar.visible { display: flex; align-items: center; gap: 10px; }
+  .spinner {
+    width: 14px; height: 14px;
+    border: 2px solid rgba(0,212,255,0.2);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    flex-shrink: 0;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Error */
+  #errorBox {
+    display: none;
+    padding: 14px 16px;
+    background: rgba(255,85,85,0.06);
+    border: 1px solid rgba(255,85,85,0.25);
+    border-radius: 4px;
+    font-size: 13px;
+    color: #ff8888;
+    font-family: var(--mono);
+    margin-bottom: 24px;
+  }
+  #errorBox.visible { display: block; }
+
+  /* Raw output section */
+  #results { display: none; }
+  #results.visible { display: block; }
+
+  .section {
+    margin-bottom: 28px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    animation: fadeUp 0.4s ease both;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    background: var(--bg3);
+    border-bottom: 1px solid var(--border);
+  }
+  .section-tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 2px;
+  }
+  .tag-raw { background: rgba(0,212,255,0.12); color: var(--accent); }
+  .section-title { font-family: var(--mono); font-size: 13px; font-weight: 500; color: var(--text); }
+  .section-body { padding: 20px; }
+
+  /* Formatted output */
+  .output-content {
+    font-size: 13px;
+    color: var(--text2);
+    line-height: 1.8;
+    font-family: var(--sans);
+    font-weight: 300;
+  }
+  .output-content h3 {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin: 20px 0 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  .output-content h3:first-child { margin-top: 0; }
+  .output-content h3.info  { color: var(--accent); }
+  .output-content h3.specs { color: var(--accent2); }
+  .output-content h3.alt   { color: var(--warn); }
+  .output-content h3.risk  { color: var(--danger); }
+
+  .output-content ul { list-style: none; padding: 0; }
+  .output-content ul li {
+    padding: 4px 0;
+    padding-left: 14px;
+    position: relative;
+    color: var(--text2);
+  }
+  .output-content ul li::before {
+    content: '→';
+    position: absolute;
+    left: 0;
+    color: var(--text3);
+    font-family: var(--mono);
+    font-size: 11px;
+  }
+  .output-content a { color: var(--accent); text-decoration: none; font-family: var(--mono); font-size: 11px; }
+  .output-content a:hover { text-decoration: underline; }
+
+  /* Part number badge */
+  .part-badge {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 16px;
+    padding: 6px 14px;
+    background: rgba(0,212,255,0.07);
+    border: 1px solid rgba(0,212,255,0.2);
+    border-radius: 3px;
+  }
+
+  /* Risk badges */
+  .risk-low    { color: var(--accent2); font-family: var(--mono); font-weight: 600; }
+  .risk-medium { color: var(--warn);    font-family: var(--mono); font-weight: 600; }
+  .risk-high   { color: var(--danger);  font-family: var(--mono); font-weight: 600; }
+
+  /* Flowise status indicator */
+  .flowise-badge {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    font-family: var(--mono);
+    font-size: 10px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text3);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    z-index: 100;
+  }
+  .flowise-badge .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent2);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <div class="header-tag">AI Component Research Agent</div>
+    <h1>Component <span>Intel</span></h1>
+    <p class="header-sub">Enter any electronic component part number — get datasheet, specs, alternatives &amp; risk analysis instantly.</p>
+    <div class="powered-by">Powered by <span>Flowise</span> + <span>Groq</span> + <span>SerpApi</span></div>
+  </div>
+
+  <div class="search-wrap">
+    <input type="text" id="partInput" placeholder="e.g. STM32F103C8T6 or TPS5430DDA" autocomplete="off" spellcheck="false" />
+    <button id="searchBtn" onclick="runAgent()">Analyze →</button>
+  </div>
+
+  <div class="examples">
+    <span class="examples-label">try:</span>
+    <button class="ex-btn" onclick="setExample('STM32F103C8T6')">STM32F103C8T6</button>
+    <button class="ex-btn" onclick="setExample('TPS5430DDA')">TPS5430DDA</button>
+    <button class="ex-btn" onclick="setExample('W25Q64FVSSIG')">W25Q64FVSSIG</button>
+    <button class="ex-btn" onclick="setExample('LM317T')">LM317T</button>
+    <button class="ex-btn" onclick="setExample('ATmega328P')">ATmega328P</button>
+  </div>
+
+  <div id="errorBox"></div>
+  <div id="statusBar"><div class="spinner"></div><span id="statusText">Connecting to Flowise...</span></div>
+
+  <div id="results">
+    <div class="section">
+      <div class="section-header">
+        <span class="section-tag tag-raw">Result</span>
+        <span class="section-title" id="resultTitle">Component Report</span>
+      </div>
+      <div class="section-body">
+        <div class="part-badge" id="partBadge"></div>
+        <div class="output-content" id="outputContent"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Flowise status indicator -->
+<div class="flowise-badge">
+  <div class="dot"></div>
+  Flowise connected
+</div>
+
+<script>
+  // ── FLOWISE CONFIG ──
+  const FLOWISE_API = 'http://localhost:3000';
+  const CHATFLOW_ID = '0c78e192-3797-4c1b-8889-f0379e5c5f76';
+
+  function setExample(val) {
+    document.getElementById('partInput').value = val;
+    document.getElementById('partInput').focus();
+  }
+
+  document.getElementById('partInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') runAgent();
+  });
+
+  function showStatus(msg) {
+    const bar = document.getElementById('statusBar');
+    bar.classList.add('visible');
+    document.getElementById('statusText').textContent = msg;
+  }
+
+  function hideStatus() {
+    document.getElementById('statusBar').classList.remove('visible');
+  }
+
+  function showError(msg) {
+    const box = document.getElementById('errorBox');
+    box.textContent = '⚠ ' + msg;
+    box.classList.add('visible');
+  }
+
+  function hideError() {
+    document.getElementById('errorBox').classList.remove('visible');
+  }
+
+  function formatOutput(text, partNumber) {
+    // Convert plain text from Flowise into formatted HTML
+    let html = text;
+
+    // Replace section headers
+    html = html.replace(/DATASHEET\s*&?\s*INFO/gi, '<h3 class="info">📋 Datasheet & Info</h3>');
+    html = html.replace(/KEY\s*SPECS/gi, '<h3 class="specs">⚡ Key Specifications</h3>');
+    html = html.replace(/ALTERNATIVES/gi, '<h3 class="alt">🔄 Alternative Parts</h3>');
+    html = html.replace(/RISK\s*ANALYSIS/gi, '<h3 class="risk">⚠ Risk Analysis</h3>');
+
+    // Convert bullet points to list items
+    html = html.replace(/^\*\s+(.+)$/gm, '<li>$1</li>');
+    html = html.replace(/^-\s+(.+)$/gm, '<li>$1</li>');
+
+    // Wrap consecutive list items in ul
+    html = html.replace(/(<li>.*<\/li>\n?)+/g, match => `<ul>${match}</ul>`);
+
+    // Convert URLs to clickable links
+    html = html.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank">↗ $1</a>');
+
+    // Color risk levels
+    html = html.replace(/\bLow\b/g, '<span class="risk-low">Low</span>');
+    html = html.replace(/\bMedium\b/g, '<span class="risk-medium">Medium</span>');
+    html = html.replace(/\bHigh\b/g, '<span class="risk-high">High</span>');
+
+    // Convert numbered alternatives
+    html = html.replace(/^(\d+)\.\s+(.+):$/gm, '<strong style="color:var(--warn);font-family:var(--mono)">$1. $2</strong>');
+
+    // Line breaks
+    html = html.replace(/\n\n/g, '<br><br>');
+    html = html.replace(/\n/g, '<br>');
+
+    return html;
+  }
+
+  async function runAgent() {
+    const part = document.getElementById('partInput').value.trim();
+    if (!part) return;
+
+    hideError();
+    document.getElementById('results').classList.remove('visible');
+    document.getElementById('searchBtn').disabled = true;
+
+    showStatus(`Sending ${part} to Flowise agent...`);
+
+    try {
+      const response = await fetch(`${FLOWISE_API}/api/v1/prediction/${CHATFLOW_ID}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: part })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Flowise error: ${response.status} — Is Flowise running on localhost:3000?`);
+      }
+
+      showStatus('Processing response...');
+      const data = await response.json();
+
+      // Flowise returns { text: "..." } or { answer: "..." }
+      const rawText = data.text || data.answer || data.output || JSON.stringify(data);
+
+      // Render output
+      document.getElementById('partBadge').textContent = part;
+      document.getElementById('resultTitle').textContent = `Component Report — ${part}`;
+      document.getElementById('outputContent').innerHTML = formatOutput(rawText, part);
+      document.getElementById('results').classList.add('visible');
+      document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    } catch(err) {
+      hideStatus();
+      if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
+        showError('Cannot connect to Flowise. Make sure Flowise is running: npx flowise start');
+      } else {
+        showError(err.message);
+      }
+    } finally {
+      hideStatus();
+      document.getElementById('searchBtn').disabled = false;
+    }
+  }
+</script>
+
+</body>
+</html>

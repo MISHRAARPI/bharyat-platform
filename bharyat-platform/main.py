@@ -5,11 +5,14 @@ import os
 import uuid
 import httpx
 from datetime import datetime
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
 from lib.llm import call_llm
+import pandas as pd
+from io import BytesIO
+from lib.bom_parser import parse_bom
 
 app = FastAPI()
 
@@ -91,3 +94,15 @@ async def test_llm():
         user_prompt="What is a BOM? Answer in 2 sentences."
     )
     return {"response": response}
+
+@app.post("/bom/upload")
+async def upload_bom(file: UploadFile = File(...)):
+    if not file.filename.endswith(('.xlsx', '.xls', '.csv')):
+        raise HTTPException(status_code=400, detail="Only .xlsx, .xls, .csv files allowed")
+    contents = await file.read()
+    result = parse_bom(contents, file.filename)
+    return {
+        "message": "BOM uploaded successfully",
+        "filename": file.filename,
+        **result
+    }

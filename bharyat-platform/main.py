@@ -13,6 +13,8 @@ from lib.llm import call_llm
 import pandas as pd
 from io import BytesIO
 from lib.bom_parser import parse_bom
+from lib.rag import ingest_document, search_similar, rag_query
+
 
 app = FastAPI()
 
@@ -105,4 +107,36 @@ async def upload_bom(file: UploadFile = File(...)):
         "message": "BOM uploaded successfully",
         "filename": file.filename,
         **result
+    }
+
+
+
+@app.post("/rag/ingest")
+async def ingest_bom_text(data: dict):
+    """Ingest text into RAG pipeline"""
+    text = data.get("text", "")
+    source = data.get("source", "manual")
+    doc_type = data.get("doc_type", "bom")
+    
+    if not text:
+        raise HTTPException(status_code=400, detail="Text is required")
+    
+    result = ingest_document(text, source, doc_type)
+    return result
+
+@app.post("/rag/query")
+async def query_rag(data: dict):
+    question = data.get("question", "")
+    if not question:
+        raise HTTPException(status_code=400, detail="Question is required")
+    result = await rag_query(question)
+    return result
+
+@app.get("/rag/stats")
+async def rag_stats():
+    """Get RAG pipeline stats"""
+    from lib.rag import doc_chunks
+    return {
+        "total_chunks": len(doc_chunks),
+        "sources": list(set([c["source"] for c in doc_chunks]))
     }
